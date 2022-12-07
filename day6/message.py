@@ -15,9 +15,17 @@ def first_marker(line: str) -> int:
             return i + 4
 
 
+def start_of_message_marker(line: str) -> int:
+    fours = list(sliding_window(14, line))
+    for i, four in enumerate(fours):
+        if len(set(four)) == 14:
+            return i + 14
+
+
 def main():
     line = read_input()
-    print(first_marker(line))
+    # print(first_marker(line))
+    print(start_of_message_marker(line))
 
 
 if __name__ == "__main__":
