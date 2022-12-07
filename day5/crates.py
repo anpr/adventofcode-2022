@@ -73,8 +73,22 @@ def apply_move(crate_config: dict[int, list[str]], move: Move) -> dict[int, list
     return crate_config
 
 
+def apply_move_part2(crate_config: dict[int, list[str]], move: Move) -> dict[int, list[str]]:
+    from_items = crate_config[move.from_no]
+    to_items = crate_config[move.to_no]
+    crate_config[move.from_no] = from_items[: -move.count]
+    crate_config[move.to_no] = to_items + from_items[-move.count :]
+    return crate_config
+
+
 def apply_moves(crate_config: dict[int, list[str]], moves: list[Move]) -> dict[int, list[str]]:
     return reduce(apply_move, moves, crate_config)
+
+
+def apply_moves_part2(
+    crate_config: dict[int, list[str]], moves: list[Move]
+) -> dict[int, list[str]]:
+    return reduce(apply_move_part2, moves, crate_config)
 
 
 def main():
@@ -82,8 +96,9 @@ def main():
     crate_config = parse_crate_config(lines, column_count)
     # print(crate_config)
     # print(moves)
-    print(top_items(crate_config))
-    new_crate_config = apply_moves(crate_config, moves)
+    # print(top_items(crate_config))
+    # new_crate_config = apply_moves(crate_config, moves)
+    new_crate_config = apply_moves_part2(crate_config, moves)
     # print(new_crate_config)
     print(top_items(new_crate_config))
 
