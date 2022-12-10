@@ -12,8 +12,8 @@ def read_commands() -> list[tuple[str, int]]:
 
 # A position is represented by an (x,y) vector
 Position: TypeAlias = array
-# A list of all tail positions
-TailPositions: TypeAlias = list[Position]
+# The set of all tail positions
+TailPositions: TypeAlias = set[tuple[int, int]]
 # state is (head_position, tail_position, tail_positions)
 State: TypeAlias = tuple[Position, Position, TailPositions]
 
@@ -47,7 +47,7 @@ def move(state: State, direction: str) -> State:
     else:
         raise ValueError("Invalid move")
 
-    new_tail_positions = tail_positions + [new_tail_position]
+    new_tail_positions = tail_positions.union({tuple(new_tail_position)})
     return new_head_position, new_tail_position, new_tail_positions
 
 
@@ -58,8 +58,8 @@ def process_command(state: State, command: tuple[str, int]) -> State:
     direction, distance = command
     for _ in range(distance):
         new_state = move(state, direction)
-        print("\n*** After move ***", direction)
-        print_state(new_state)
+        # print("\n*** After move ***", direction)
+        # print_state(new_state)
         state = new_state
 
     return state
@@ -85,12 +85,12 @@ def print_state(state: State):
 
 def main():
     commands = read_commands()
-    initial_state = (array([0, 0]), array([0, 0]), [])
+    initial_state = (array([0, 0]), array([0, 0]), set())
     final_state = process_commands(initial_state, commands)
-    print("*** Final state ***")
-    print_state(final_state)
+    # print("*** Final state ***")
+    # print_state(final_state)
     tail_positions = {tuple(position) for position in final_state[2]}
-    print("Tail positions:", tail_positions)
+    # print("Tail positions:", tail_positions)
     print(len(tail_positions))
 
 
