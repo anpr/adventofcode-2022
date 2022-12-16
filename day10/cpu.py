@@ -14,8 +14,13 @@ class State(BaseModel):
     cycle: int
     command_cycle: int
     x: int
-    # signal_strength: int
     sum_signal_strength: int
+
+    def crt_row(self) -> int:
+        return (self.cycle - 1) % 40
+
+    def is_visible(self) -> bool:
+        return abs(self.crt_row() - self.x) <= 1
 
     def current_command(self) -> list[str]:
         if len(self.command_stack) == 0:
@@ -32,7 +37,7 @@ class State(BaseModel):
 def next_sum_signal_strength(state: State) -> int:
     if (state.cycle - 20) % 40 == 0:
         signal_strength = state.x * state.cycle
-        print("** signal_strength=", signal_strength)
+        # print("** signal_strength=", signal_strength)
         return state.sum_signal_strength + signal_strength
     else:
         return state.sum_signal_strength
@@ -43,7 +48,14 @@ def process_cycle(state: State) -> tuple[State, bool]:
         "noop": 1,
         "addx": 2,
     }
-    if len(state.command_stack) == 0 or state.cycle == 220:
+    if state.is_visible():
+        print('#', end='')
+    else:
+        print('.', end='')
+    if state.crt_row() == 39:
+        print()
+
+    if len(state.command_stack) == 0:
         return state, False
 
     command = state.command_stack[0]
@@ -79,13 +91,13 @@ def main():
     )
     state = initial_state
     while True:
-        print("state: ", state)
+        # print("state: ", state)
         state, is_done = process_cycle(state)
         if not is_done:
             break
 
-    print("\nFinal state: ", state)
-    print(state.sum_signal_strength)
+    # print("\nFinal state: ", state)
+    # print(state.sum_signal_strength)
 
 
 if __name__ == "__main__":
