@@ -5,11 +5,14 @@ from pprint import pprint
 
 from pydantic import BaseModel
 from toolz import partitionby
+from collections import deque
 
 
 class Monkey(BaseModel):
     monkey_no: int
-    items: list[int]
+    items: deque[
+        list[int]
+        ]  # A single item is a list of worry levels modulo test_divisible of the respective monkey
     test_divisible: int
     operation: str
     true_monkey: int
@@ -22,18 +25,25 @@ class Monkey(BaseModel):
             return worry
         return int(val)
 
-    def apply_operation(self, worry: int) -> int:
-        val1, op, val2 = self.operation.split()
-        value1 = self.resolve_val(val1, worry)
-        value2 = self.resolve_val(val2, worry)
-        if op == "+":
-            return value1 + value2
-        elif op == "*":
-            return value1 * value2
-        raise ValueError(f"Unknown operation {self.operation}")
+    def apply_operation(self, monkeys, worries: list[int]) -> list[int]:
+        # print(f"   apply_operation to worry {worry}")
+        def apply_operation_to_single_worry(divisible: int, worry: int):
+            val1, op, val2 = self.operation.split()
+            value1 = self.resolve_val(val1, worry)
+            value2 = self.resolve_val(val2, worry)
+            if op == "+":
+                return (value1 + value2) % divisible
+            elif op == "*":
+                return (value1 * value2) % divisible
+            raise ValueError(f"Unknown operation {self.operation}")
 
-    def test_worry_level(self, worry: int) -> bool:
-        if worry % self.test_divisible == 0:
+        return [
+            apply_operation_to_single_worry(divisible=monkey.test_divisible, worry=worry)
+            for monkey, worry in zip(monkeys, worries)
+        ]
+
+    def test_worry_level(self, worries: list[int]) -> bool:
+        if worries[self.monkey_no] % self.test_divisible == 0:
             return True
         return False
 
@@ -46,13 +56,13 @@ def read_lines() -> list[str]:
     return lines
 
 
-def read_monkey(monkey_lines: tuple[str, str, str, str, str, str]) -> Monkey:
+def read_monkey(monkey_lines: tuple[str, str, str, str, str, str], monkey_count: int) -> Monkey:
     monkey_no_str, starting_items_str, operation_str, test_str, true_str, false_str = monkey_lines
     return Monkey(
         monkey_no=re.search(r"Monkey (\d+):", monkey_no_str).group(1),
-        items=list(
+        items=deque(
             map(
-                lambda item_str: int(item_str.strip()),
+                lambda item_str: [int(item_str.strip())] * monkey_count,
                 starting_items_str.split(maxsplit=2)[2:][0].split(","),
             )
         ),
@@ -72,21 +82,21 @@ def p(s: str):
 def make_turn(monkeys: list[Monkey], monkey: Monkey) -> list[Monkey]:
     p(f"Monkey {monkey.monkey_no}")
     while monkey.items:
-        item = monkey.items.pop(0)
+        item = monkey.items.popleft()
         p(f"  Monkey inspects item with a worry level of {item}")
         monkey.inspect_count += 1
-        worry = monkey.apply_operation(worry=item)
-        p(f"  Worry level: {worry}")
+        worries = monkey.apply_operation(monkeys=monkeys, worries=item)
+        p(f"  Worry level: {worries}")
         # worry = int(worry / 3)
-        p(f"  Bored worry: {worry}")
-        test_result = monkey.test_worry_level(worry=worry)
+        # p(f"  Bored worry: {worries}")
+        test_result = monkey.test_worry_level(worries=worries)
         p(f"  Current worry level is divisible by {monkey.test_divisible}: {test_result}")
         if test_result:
-            p(f"  Item with worry level {worry} is thrown to {monkey.true_monkey}")
-            monkeys[monkey.true_monkey].items.append(worry)
+            p(f"  Item with worry level {worries} is thrown to {monkey.true_monkey}")
+            monkeys[monkey.true_monkey].items.append(worries)
         else:
-            p(f"  Item with worry level {worry} is thrown to {monkey.false_monkey}")
-            monkeys[monkey.false_monkey].items.append(worry)
+            p(f"  Item with worry level {worries} is thrown to {monkey.false_monkey}")
+            monkeys[monkey.false_monkey].items.append(worries)
 
     return monkeys
 
@@ -94,7 +104,6 @@ def make_turn(monkeys: list[Monkey], monkey: Monkey) -> list[Monkey]:
 def make_round(monkeys: list[Monkey]) -> list[Monkey]:
     for monkey in monkeys:
         monkeys = make_turn(monkeys, monkey)
-
     return monkeys
 
 
@@ -111,9 +120,13 @@ def main():
             lambda monkey_lines: monkey_lines != ("",), partitionby(lambda line: line == "", lines)
         )
     )
-    monkeys = [read_monkey(monkey_lines) for monkey_lines in all_monkey_lines]
+    monkey_count = len(all_monkey_lines)
+    monkeys = [read_monkey(monkey_lines, monkey_count) for monkey_lines in all_monkey_lines]
+    pprint(monkeys)
     for i in range(10000):
         print(f"\n*** Round {i}")
+        if round(i % 10 == 0):
+            pprint(monkeys)
         monkeys = make_round(monkeys)
 
     print(monkey_business(monkeys))
